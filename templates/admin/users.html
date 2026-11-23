@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - Admin - Ecycle{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="mb-0">User Management</h1>
+        <p class="text-muted">Manage registered users and their accounts</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <div class="btn-group">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-info">
+                <i class="fas fa-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- User Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card admin-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted">Total Users</h6>
+                        <h3>{{ users|length }}</h3>
+                    </div>
+                    <div class="fs-1 text-info">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card admin-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted">New Users (30d)</h6>
+                        <h3>{{ new_users_count|default(0) }}</h3>
+                    </div>
+                    <div class="fs-1 text-success">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card admin-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted">Avg. Eco Points</h6>
+                        <h3>{{ avg_eco_points|default(0)|round|int }}</h3>
+                    </div>
+                    <div class="fs-1 text-warning">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card admin-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted">Total Carbon Saved</h6>
+                        <h3>{{ total_carbon_saved|default(0)|round|int }} kg</h3>
+                    </div>
+                    <div class="fs-1 text-info">
+                        <i class="fas fa-tree"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('admin_users') }}" method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" placeholder="Username or email" value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="username" {% if request.args.get('sort') == 'username' %}selected{% endif %}>Username</option>
+                    <option value="date" {% if request.args.get('sort') == 'date' %}selected{% endif %}>Join Date</option>
+                    <option value="points" {% if request.args.get('sort') == 'points' %}selected{% endif %}>Eco Points</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="order" class="form-label">Order</label>
+                <select class="form-select" id="order" name="order">
+                    <option value="asc" {% if request.args.get('order') == 'asc' %}selected{% endif %}>Ascending</option>
+                    <option value="desc" {% if request.args.get('order') == 'desc' %}selected{% endif %}>Descending</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Registered Users</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if users %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                            <th>Eco Points</th>
+                            <th>Carbon Saved</th>
+                            <th>E-waste</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.created_at.strftime('%m/%d/%Y') }}</td>
+                                <td>{{ user.eco_points }}</td>
+                                <td>{{ user.carbon_saved|round(2) }} kg</td>
+                                <td>{{ user.ewaste_items|length }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('admin_user_details', user_id=user.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> Details
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#quickUpdateModal{{ user.id }}">
+                                            <i class="fas fa-edit"></i> Quick Update
+                                        </button>
+                                    </div>
+                                    
+                                     <!-- Quick Update Modal -->
+                                     <div class="modal fade text-start" id="quickUpdateModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+                                         <div class="modal-dialog">
+                                             <div class="modal-content">
+                                                 <div class="modal-header bg-primary text-white">
+                                                     <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Edit User: {{ user.username }}</h5>
+                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                 </div>
+                                                 <form action="{{ url_for('admin_update_user', user_id=user.id) }}" method="POST">
+                                                     <div class="modal-body">
+                                                         <div class="mb-3">
+                                                             <label for="username{{ user.id }}" class="form-label fw-bold">Username</label>
+                                                             <input type="text" class="form-control" id="username{{ user.id }}" name="username" value="{{ user.username }}" required>
+                                                         </div>
+                                                         <div class="mb-3">
+                                                             <label for="email{{ user.id }}" class="form-label fw-bold">Email Address</label>
+                                                             <input type="email" class="form-control" id="email{{ user.id }}" name="email" value="{{ user.email }}" required>
+                                                         </div>
+                                                         <div class="mb-3">
+                                                             <label for="eco_points{{ user.id }}" class="form-label fw-bold">Eco Points</label>
+                                                             <input type="number" class="form-control" id="eco_points{{ user.id }}" name="eco_points" value="{{ user.eco_points }}" required>
+                                                         </div>
+                                                         <div class="mb-3">
+                                                             <label for="carbon_saved{{ user.id }}" class="form-label fw-bold">Carbon Saved (kg CO₂)</label>
+                                                             <input type="number" step="0.01" class="form-control" id="carbon_saved{{ user.id }}" name="carbon_saved" value="{{ user.carbon_saved }}" required>
+                                                         </div>
+                                                     </div>
+                                                     <div class="modal-footer justify-content-between">
+                                                         <button type="submit" name="action" value="edit_details" class="btn btn-success">Save Changes</button>
+                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                     </div>
+                                                  </form>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info m-3">
+                No users found.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
